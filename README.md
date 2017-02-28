@@ -1,6 +1,7 @@
 # slicematrixIO-python
 <h1>Python API for SliceMatrix-IO</h1>
 <br>
+<h3>Introduction</h3>
 <p>SliceMatrix is the next generation of machine intelligence eco-system. SliceMatrix provides an end-to-end machine intelligence Platform as a Service (PaaS) so that users can seamlessly and easily develop machine intelligent applications and systems that are hosted directed on the cloud.</p>
 <p>IO makes it trivially easy for any developer to access cutting edge machine learning algorithms. It is the first platform to commercialize manifold learning technology.</p>
 <p>For example, the following code snipper fits a KernelPCA model to intraday price data for over 500 financial instruments. This is an example of manifold learning, a family of algorithms which discovers the underlying structure of high dimensional data. Manifold learning is designed to handle even highly nonlinear data structures such as financial, social, and medical datasets.</p>
@@ -88,3 +89,8 @@ while cindex < testing_data.shape[0]:
 pct_correct = 1. * np.sum(np.equal(testing_predictions, testing_data['class'])) / len(testing_predictions)
 print pct_correct #output => 0.99924137931
 ```
+<h3>Installation</h3>
+<p>The easiest way is to use pip:</p>
+```
+pip install slicematrixIO
+````
