@@ -3,7 +3,48 @@
 <br>
 <h3>Introduction</h3>
 <p>SliceMatrix is the next generation of machine intelligence eco-system. SliceMatrix provides an end-to-end machine intelligence Platform as a Service (PaaS) so that users can seamlessly and easily develop machine intelligent applications and systems that are hosted directed on the cloud.</p>
-<p>IO makes it trivially easy for any developer to access cutting edge machine learning algorithms. It is the first platform to commercialize manifold learning technology.</p>
+<p>IO makes it trivially easy for any developer to access bleeding edge machine learning algorithms, including:
+<ul>
+<li>Kalman Filter (Bayesian Filtering)</li> 
+<li>Density Estimation / Anomaly Detection</li>
+      <ul>
+      <li>KernelDensityEstimator</li>
+      <li>BasicA2D</li>
+      <li>IsolationForest</li>
+      </ul>
+<li>Classifiers</li>
+      <ul>
+      <li>KNNClassifier</li> 
+      <li>PNNClassifier</li>
+      </ul>
+<li>Graphing Algorithms</li>
+      <ul>
+      <li>Minimum Spanning Tree</li> 
+      <li>Correlation Filtered Graph</li> 
+      <li>Neighbor Network Graph</li>
+      </ul>
+<li>Distance Matrix Models</li>
+<li>Matrix Models</li>
+      <ul>
+      <li>Matrix Minimum Spanning Tree</li>
+      <li>Matrix KernelPCA</li> 
+      <li>Matrix Agglomerator</li>
+      </ul>
+<li>Manifold Learning Algorthms</li> 
+      <ul>
+      <li>KernelPCA</li>
+      <li>LocalLinearEmbedder</li>
+      <li>LaplacianEigenmapper</li> 
+      <li>Isomap</li>
+      </ul>
+<li>Regressors</li>
+      <ul>
+      <li>KNN Regressor</li>
+      <li>Random Forest Regressor</li> 
+      <li>Kernel Ridge Regressor</li>
+      </ul>
+</ul>
+</p>
 <p>For example, the following code snipper fits a KernelPCA model to intraday price data for over 500 financial instruments. This is an example of manifold learning, a family of algorithms which discovers the underlying structure of high dimensional data. Manifold learning is designed to handle even highly nonlinear data structures such as financial, social, and medical datasets.</p>
 ```
 from slicematrixIO import SliceMatrix
