@@ -58,7 +58,7 @@ class RFRegressor():
                                           method = "predict",
                                           extra_params = extra_params)
         try:
-           return pd.DataFrame(response['predict'], columns = ['predict'])
+           return pd.DataFrame(response['predict'])
         except:
            raise StandardError(response)
 
@@ -123,7 +123,7 @@ class KNNRegressor():
                                           method = "predict",
                                           extra_params = extra_params)
         try:
-           return pd.DataFrame(response['predict'], columns = ['predict'])
+           return pd.DataFrame(response['predict'])
         except:
            raise StandardError(response)
 
@@ -185,7 +185,7 @@ class KernelRidgeRegressor():
                                           method = "predict",
                                           extra_params = extra_params)
         try:
-           return pd.DataFrame(response['predict'], columns = ['predict'])
+           return pd.DataFrame(response['predict'])
         except:
            raise StandardError(response)
 

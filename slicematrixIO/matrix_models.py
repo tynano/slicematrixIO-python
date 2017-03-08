@@ -190,7 +190,7 @@ class MatrixKernelPCA():
 ###################################################################################################################################################################
 class MatrixAgglomeratorPipeline(BasePipeline):
     def __init__(self, name, alpha = 0.1, client = None):
-        params = {}
+        params = {"alpha":alpha}
         BasePipeline.__init__(self, name, "matrix_agglomeration", client, params)
 
     def run(self, label_dataset, model, matrix = None, matrix_name = None, matrix_type = None):

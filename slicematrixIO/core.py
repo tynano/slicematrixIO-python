@@ -22,6 +22,8 @@ class BasePipeline():
         # put the dataframe to the cloud
         if dataset is not None:
             dataset_name = rando_name()
+            #print("putting dataset")
+            #print(dataset_name)
             self.client.put_df(dataset_name, dataset)
         else:
             dataset_name = None

@@ -10,9 +10,9 @@ from manifolds import KernelPCA, LocalLinearEmbedder, LaplacianEigenmapper, Isom
 from regressors import KNNRegressor, RFRegressor, KernelRidgeRegressor                     # lazy loading enabled
 
 class SliceMatrix():
-    def __init__(self, api_key):
+    def __init__(self, api_key, region = "us-east-1"):
         self.api_key = api_key
-        self.client  = ConnectIO(self.api_key)
+        self.client  = ConnectIO(self.api_key, region = region)
 
     # bayesian filters ##########################################################################################################################################################
     # need to test this
