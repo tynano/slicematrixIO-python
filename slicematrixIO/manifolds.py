@@ -315,7 +315,7 @@ class Isomap():
         self.client  = client
         self.type     = "raw_isomap"
         if dataset is not None:
-            self.__full_init__(dataset, name, pipeline, D, K, client)
+            self.__full_init__(dataset.T, name, pipeline, D, K, client)
         else:
             self.__lazy_init__(name)
 
