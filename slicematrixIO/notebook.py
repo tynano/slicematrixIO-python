@@ -16,7 +16,14 @@ class GraphEngine():
 		clear_output()
 		nodes = network_model.nodes()
 		links = network_model.edges()
-		embedding = network_model.embedding()
+		stats = network_model.rankNodes(statistic=color_axis).values.tolist()
+		try:
+			embedding = network_model.embedding().values.tolist()
+			got_embed = True
+		except:
+			embedding = []
+			got_embed = False
+		
 		config = """
 			require.config({
 				paths: {
@@ -25,11 +32,17 @@ class GraphEngine():
 			});
 		"""
 		
-		init_js  = "window.current_graph_id={};".format(self.graph_count);
+		init_js  = "element.data('graph_id', {});".format(self.graph_count);
+		
+		width_js  = "element.data('width', {});".format(width);
+		
+		height_js  = "element.data('height', {});".format(height);
 		
 		javascript = "window.graph_data.push(JSON.parse('{}'));".format(json.dumps({"nodes":nodes, 
 																			  "links":links, 
-																			  "embedding": embedding.values.tolist(),
+																			  "embedding": embedding,
+																			  "stats": stats,
+																			  "got_embed": got_embed,
 																			  "width": width,
 																			  "height": height,
 																			  "color_map": color_map,
@@ -40,489 +53,476 @@ class GraphEngine():
 																			  "label_color": label_color,
 																			  "label_shadow_color": label_shadow_color,
 																			  "min_node_size": min_node_size,
-																			  "api_region": self.sm.client.region,
-																			  "api_id": self.sm.client.api,
-																			  "api_key": self.sm.client.api_key,
-																			  "model_name": network_model.name,
-																			  "model_type": network_model.type,
 																			  "graph_id": self.graph_count}))
 		#print javascript
 		
 		
 		
 		js_code = """
-		console.log(window.current_graph_id);
-		var width = window.graph_data[window.current_graph_id]['width'];
-		var height = window.graph_data[window.current_graph_id]['height'];
-
-		var label_color = window.graph_data[window.current_graph_id]['label_color'];
-
-		var API_region = window.graph_data[window.current_graph_id]['api_region'];
-		var API_id = window.graph_data[window.current_graph_id]['api_id'];
-		var API_STAGE = "development";
-		var API_KEY = window.graph_data[window.current_graph_id]['api_key'];
-
-		var url = 'https://' + API_id + '.execute-api.' + API_region + '.amazonaws.com/' + API_STAGE + '/models/call';
-
-		var model_name = window.graph_data[window.current_graph_id]['model_name'];
-		var model_type = window.graph_data[window.current_graph_id]['model_type'];
-		
-		var min_node_size = window.graph_data[window.current_graph_id]['min_node_size'];
-		
-		var charge = window.graph_data[window.current_graph_id]['charge'];
-
-		var colorAxis = window.graph_data[window.current_graph_id]['color_axis'];
-		if(colorAxis == undefined){
-			colorAxis = "closeness_centrality";
-		}
-
-		var colorMap = window.graph_data[window.current_graph_id]['color_map'];
-		if(colorMap == undefined){
-			colorMap = "RdBuGn";
-		}
-
-		var graphStyle = window.graph_data[window.current_graph_id]['graph_style'];
-		// light || dark || white || ether
-		if(graphStyle == undefined){
-			graphStyle = "light";
-		}
-
-		var suppressLabels;
-		if(suppressLabels == undefined){
-			suppressLabels = true;
-		}
-
-		var graphTitle;
-		if(graphTitle == undefined){
-			graphTitle = "SliceMatrix-IO Network Viewer";
-		}
-
-		var graphLayout = window.graph_data[window.current_graph_id]['graph_layout'];
-		if(graphLayout == undefined){
-			graphLayout = "embedding";
-		}
-
-		require(['d3'], function(d3){
-
-			element.append('<div id = "top_bar"><b><a href = "http://www.slicematrix.com" target = "_blank" style="color:#fffff0">SliceMatrix-IO</a></b> Network View</div>');
-			element.append('<div class = "loadingDialog" id = "spinner_' + window.current_graph_id +'"><div class="loader"></div><br><div id = "loading_status">loading graph data...</div></div> ');
-			element.append('<div class = "content_cell" id = "content_' + window.current_graph_id +'"><canvas id = "mainEvent_' + window.current_graph_id +'" width="' + width + '" height="' + height + '"></canvas></div>');
-
-			// update background style
-			if(graphStyle == "dark"){
-				d3.select("#content_" + window.current_graph_id).style("background", "rgb(20,20,20)");
-
-
-				$('#top_bar').css({
-					"color": "rgba(255, 255, 255, 0.88)",
-					"text-shadow": "5px 5px 2px rgba(120,120,120,0.2)",
-					"background-color": "rgba(220,220,220, 0.4)",
-					"box-shadow": "-5px 5px 5px rgba(220,220,220,0.0)"
-				});
-				d3.select("#loading_status").style("color", "rgb(255, 255, 255)");
-			}else if(graphStyle == "white"){
-				$('#content' + window.current_graph_id).css({
-					"background-image": "none",
-					"background-color": "#FFF",
-					"background": "rgb(256,256,256)"
-				});
-
-				d3.select("#loadingDialog").style("background", "rgba(120,120,120,0.7)");
-			}else if(graphStyle == "ether"){
-				$('#content' + window.current_graph_id).css({
-					"background-image": "none",
-					"background-color": "#000",
-					"background": "-webkit-radial-gradient(circle, black 15%, rgb(5,5,10), rgb(10,10,30), rgb(15,50,50))"
-				});
-
-				$('#top_bar').css({
-					"color": "rgba(255, 255, 255, 0.88)",
-					"text-shadow": "5px 5px 2px rgba(120,120,120,0.2)",
-					"background-color": "rgba(220,220,220, 0.4)",
-					"box-shadow": "-5px 5px 5px rgba(220,220,220,0.0)"
-				});
-
-				d3.select("#loading_status").style("color", "rgb(255, 255, 255)");
-			}
-
-			//
-			if(graphLayout == undefined){
-				graphLayout = false;
-			}
-
-			var colormap = function(maxval, midval, minval, maxcol, midcol, mincol){
-			return d3.scaleLinear()
-					 .domain([minval, midval, maxval])
-					 .range([mincol, midcol, maxcol]);
-
-			}
-
-			var colormaps = {'RdBuGn':   ['rgb(20,220,120)','rgb(20,120,220)','rgb(220,20,20)'],
-						 'RdGrGn':   ['rgb(0,254,122)','rgb(185,185,185)','rgb(225,26,29)'],//2
-						 'PuBuXr':   ['rgb(20,120,255)','rgb(25,25,45)','rgb(255,20,120)'],//3
-						 'RdBuGnXr': ['rgb(20,220,120)','rgb(20,60,120)','rgb(220,20,20)'],//4
-						 'Viridis':  ['rgb(240,249,33)','rgb(30,153,138)','rgb(19,6,137)'],//5
-						 'Heat':     ['rgb(110,0,0)','rgb(255,17,0)','rgb(255,255,87)'],//9
-						 'Cool':     ['rgb(6,248,255)','rgb(139,116,255)','rgb(255,0,255)'],//11
-						 'Greens':   ['rgb(169,196,222)','rgb(121,198,122)','rgb(48,113,60)'],//8
-						 'Blues':    ['rgb(247,252,255)','rgb(95,166,209)','rgb(19,95,167)'],//7
-						 'GnBu':     ['rgb(247,252,240)','rgb(124,249,125)','rgb(8,73,138)'],//6
-						 'Winter':   ['rgb(0,11,249)','rgb(0,173,169)','rgb(0,255,128)']}//10
-
-			function getMaxOfArray(numArray) {
-			  return Math.max.apply(null, numArray);
-			}
-
-			function getMinOfArray(numArray) {
-			  return Math.min.apply(null, numArray);
-			}
-
-			var graph = {nodes:[], links:[]};
-
-			var curr_colormap;
-
-			d3.select("#loading_status").html("loaded nodes...");
-			var data = window.graph_data[window.current_graph_id];
-			data['nodes'].forEach(function(d){
-				graph['nodes'].push({id:d});
-			});
-
-			d3.select("#loading_status").html("loaded edges...");
-			data['links'].forEach(function(d){
-				graph['links'].push({source:d[0], target:d[1]});
-			});
-
-			//var height = 600;
-			//var width  = 1200;
-			var searchRadius = 3;
-
-			//d3.select("canvas").attr("height", height).attr("width", width);
-
-			var transform = d3.zoomIdentity;
-
-
-			//var canvas = document.querySelector("canvas"),
-			var canvas = document.querySelector("#mainEvent_" + window.current_graph_id),
-				context = canvas.getContext("2d");
-				//width = canvas.width,
-				//height = canvas.height;
-
-			var simulation = d3.forceSimulation()
-				.force("link", d3.forceLink().id(function(d) { return d.id; }))
-				.force("charge", d3.forceManyBody().strength(charge))
-				.force("center", d3.forceCenter(width / 2, height / 2))
-				.force("X", d3.forceX().x(0.2))
-				.force("Y", d3.forceY().y(0.2));
-
-			var zoom = d3.zoom();
-
-			var k = 1.0;
-
-			function initialize(){
-			  //zoom.scaleTo(d3.select("canvas").transition().duration(3000), 0.05);
-			}
-
-			//initialize();
-
-			var ggraph;
-
-			var selected_node;
-
-			var transform;
-
-			var ticks = 0;
-
-
-			var mixcolors = function(color1, color2){
-				var c1 = color1.replace("rgb(", "").replace(")", "").split(",");
-				var c2 = color2.replace("rgb(", "").replace(")", "").split(",");
-				var r1 = Math.round((parseInt(c1[0]) + parseInt(c2[0])) / 2);
-				var g1 = Math.round((parseInt(c1[1]) + parseInt(c2[1])) / 2);
-				var b1 = Math.round((parseInt(c1[2]) + parseInt(c2[2])) / 2);
-				if (isNaN(r1) || isNaN(g1) || isNaN(b1)){
-				  return "rgba(20,120,220,0.6)";
-				}else{
-				  return "rgba(" + r1.toString() + "," + g1.toString() + "," + b1.toString() + ",0.6)";
-				}
-			}
-
-			var drawGraph = function(){
-				console.log(graph);
-
-				function dragsubject() {
-				  var i,
-					  x = transform.invertX(d3.event.x),
-					  y = transform.invertY(d3.event.y),
-					  dx,
-					  dy;
-				}
-
-
-				function dragstarted() {
-				  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-				  d3.event.subject.fx = d3.event.subject.x;
-				  d3.event.subject.fy = d3.event.subject.y;
-				}
-
-				function dragged() {
-				  //d3.event.subject[0] = transform.invertX(d3.event.x);
-				  //d3.event.subject[1] = transform.invertY(d3.event.y);
-				  d3.event.subject.fx = d3.event.x;
-				  d3.event.subject.fy = d3.event.y;
-				}
-
-				function dragended() {
-				  if (!d3.event.active) simulation.alphaTarget(0);
-				  d3.event.subject.fx = null;
-				  d3.event.subject.fy = null;
-				}
-
-				function drawLink(d) {
-				  context.moveTo(d.source.x, d.source.y);
-				  context.lineTo(d.target.x, d.target.y);
-				}
-
-				function drawNode(d) {
-				  context.moveTo(d.x + get_current_node_size(), d.y);
-				  context.arc(d.x, d.y, get_current_node_size(), 0, 2 * Math.PI);
-				  //context.fill();
-				}
-
-				function drawLabel(d, id) {
-				  //console.log(d);
-				  context.shadowBlur = 10;
-				  context.shadowColor = "rgba(120,120,120,0.3)";
-				  context.fillText(d.id, d.x,d.y);
-				  //context.fill();
-				}
-
-				function rgb2a(rgb_string, alpha){
-					//console.log(rgb_string);
-				  rgb_string = rgb_string.replace(")", "," + alpha + ")").replace("rgb", "rgba");
-				  //rgb_string = "rgba(0,0,0,0.3)";
-				  return rgb_string 
-				}
-
-				function get_current_alpha(){
-				  return 1.0 - Math.min(transform.k, 0.5);
-				}
-
-				function get_current_font_size(){
-				  return 10 / Math.pow(transform.k, 0.5);
-				}
-
-				function get_current_highlighted_font_size(){
-				  return Math.min(720 * transform.k, 20);
-				}
-
-				function get_current_link_width(){
-				  return Math.max(1.5, 0.5/ transform.k);
-				}
-
-				function get_current_node_size(){
-				  return Math.min(60 * transform.k, min_node_size);
-				}
-
-				function get_current_deg_thresh(){
-				  if(k >= 0.4){
-					return 1;
-				  }else{
-					return 2;
-				  }
-				}
-
-
-				ggraph = graph;
-				  setTimeout(initialize, 0);
-
-				  if(graphLayout == "force"){
-
-					  simulation
-						  .nodes(graph.nodes)
-						  .on("tick", ticked);
-
-					  simulation.force("link")
-						  .links(graph.links);
-
-				  }else{
-						  simulation
-						  .nodes(graph.nodes);
-						  //.on("tick", ticked);
-
-					  simulation.force("link")
-						  .links(graph.links);
-						ticked();
-				  }
-
-				  //d3.select("mainEvent_" + window.current_graph_id)
-				  d3.select(canvas)
-					  .on("mousemove", mousemoved)
-					  .call(d3.drag()
-						  .container(canvas)
-						  .subject(dragsubject)
-						  .on("start", dragstarted)
-						  .on("drag", dragged)
-						  .on("end", dragended))
-					  .call(zoom.on("zoom", zoomed));
-
-				  function zoomed() {
-					//console.log("zooming!");
-					transform = d3.event.transform;
-					//console.log(simulation.alpha());
-					if(graphLayout == "force"){
-						if(simulation.alpha() < 0.01){//>
-						  ticked();
-						}
-					}else{
-						ticked();
+		window.current_graph_id += 1;
+		window.graph_data[window.current_graph_id]['element'] = element;
+		var graph_id = window.current_graph_id;
+		console.log(graph_id);
+		var width  = element.data("width");
+		var height = element.data("height");
+		console.log(width);
+		console.log(height);
+		element.empty();
+		element.append('<div id = "top_bar"><b><a href = "http://www.slicematrix.com" target = "_blank" style="color:#fffff0">SliceMatrix-IO</a></b> Network View</div>');
+		element.append('<div class = "loadingDialog" id = "spinner_' + graph_id +'"><div class="loader"></div><br><div id = "loading_status">loading graph data...</div></div> ');
+		element.append('<div class = "content_cell" id = "content_' + graph_id +'"><canvas id = "mainEvent_' + graph_id +'" width="' + width + '" height="' + height + '"></canvas></div>');
+		(function(graph_id, element) {
+			console.log("inside closure!");
+			require(['d3'], function(d3){
+				window.d3 = d3;
+				//var graph_id = element.data('graph_id');//window.current_graph_id;
+				//var element  = $(element);
+				
+					//var element = window.graph_data[graph_id]['element'];
+					console.log("require");
+					console.log("graph_id = " + graph_id);
+					var width = window.graph_data[graph_id]['width'];
+					var height = window.graph_data[graph_id]['height'];
+					console.log(window.current_graph_id);
+
+
+					var label_color = window.graph_data[graph_id]['label_color'];
+					
+					var min_node_size = window.graph_data[graph_id]['min_node_size'];
+					
+					var charge = window.graph_data[graph_id]['charge'];
+
+					var colorAxis = window.graph_data[graph_id]['color_axis'];
+					if(colorAxis == undefined){
+						colorAxis = "closeness_centrality";
 					}
-				  }
 
-				  function mousemoved() {
-					//console.log(graph.nodes);
-					var m = d3.mouse(this);
-					var x = (m[0] - transform.x) / transform.k;
-					var y = (m[1] - transform.y) / transform.k;
-					var moused_node;
-					for (var i = graph.nodes.length - 1; i >= 0; --i) {
-					  var point = graph.nodes[i];
-					  var dx = x - point.x;
-					  var dy = y - point.y;
-					  if (dx * dx + dy * dy < searchRadius * searchRadius) {//>
-						//point.x = transform.applyX(point.x);
-						//point.y = transform.applyY(point.y);
-						moused_node = point;
-					  }
+					var colorMap = window.graph_data[graph_id]['color_map'];
+					if(colorMap == undefined){
+						colorMap = "RdBuGn";
 					}
-					selected_node = moused_node;
-					if(graphLayout == "force"){
-						if(simulation.alpha() < 0.01){//>
-						  ticked();
-						}
+
+					var graphStyle = window.graph_data[graph_id]['graph_style'];
+					// light || dark || white || ether
+					if(graphStyle == undefined){
+						graphStyle = "light";
 					}
-				  }
 
-				  function restartIt(){
-					simulation.alpha(1.0)
-					simulation.restart();
-				  }
-
-				  function ticked() {
-					k = transform.k;
-					if( graphLayout != "force"){
-						simulation.stop();
-					}else{
-						if(ticks == 0){
-							setTimeout(restartIt,1);
-						}
+					var suppressLabels;
+					if(suppressLabels == undefined){
+						suppressLabels = true;
 					}
-						context.clearRect(0, 0, width, height);
-						context.save();
-						//context.translate(width / 2, height / 2);
 
-						context.globalAlpha = 1.0;
+					var graphTitle;
+					if(graphTitle == undefined){
+						graphTitle = "SliceMatrix-IO Network Viewer";
+					}
 
-						context.translate(transform.x, transform.y);
-						context.scale(transform.k, transform.k);
+					var graphLayout = window.graph_data[graph_id]['graph_layout'];
+					if(graphLayout == undefined && window.graph_data[graph_id]['got_embed'] == true){
+						graphLayout = "embedding";
+					}
 
-						graph.links.forEach(function(link) {
-						  context.beginPath();
-						  drawLink(link);
-						  //context.strokeStyle = rgb2a("rgb(20,20,20)", get_current_alpha());
-						  //console.log(link.source.color);
-						  var color = mixcolors(link.source.color, link.target.color);
-						  context.strokeStyle = color;
-						  context.lineWidth = get_current_link_width();
-						  context.stroke();
+					// update background style
+					if(graphStyle == "dark"){
+						d3.select("#content_" + graph_id).style("background", "rgb(20,20,20)");
+
+
+						$('#top_bar').css({
+							"color": "rgba(255, 255, 255, 0.88)",
+							"text-shadow": "5px 5px 2px rgba(120,120,120,0.2)",
+							"background-color": "rgba(220,220,220, 0.4)",
+							"box-shadow": "-5px 5px 5px rgba(220,220,220,0.0)"
+						});
+						d3.select("#loading_status").style("color", "rgb(255, 255, 255)");
+					}else if(graphStyle == "white"){
+						$('#content' + graph_id).css({
+							"background-image": "none",
+							"background-color": "#FFF",
+							"background": "rgb(256,256,256)"
 						});
 
-						graph.nodes.forEach(function(user) {
-						//console.log(user);
-						  context.beginPath();
-						  drawNode(user);
-						  context.fillStyle = rgb2a(user.color, get_current_alpha());
-						  context.fill();
-						  if(selected_node != undefined){
-							if(user.id == selected_node.id){
-							  context.strokeStyle = "#000";
-							  context.lineWidth = 1;
-							  context.stroke();
+						d3.select("#loadingDialog").style("background", "rgba(120,120,120,0.7)");
+					}else if(graphStyle == "ether"){
+						$('#content' + graph_id).css({
+							"background-image": "none",
+							"background-color": "#000",
+							"background": "-webkit-radial-gradient(circle, black 15%, rgb(5,5,10), rgb(10,10,30), rgb(15,50,50))"
+						});
+
+						$('#top_bar').css({
+							"color": "rgba(255, 255, 255, 0.88)",
+							"text-shadow": "5px 5px 2px rgba(120,120,120,0.2)",
+							"background-color": "rgba(220,220,220, 0.4)",
+							"box-shadow": "-5px 5px 5px rgba(220,220,220,0.0)"
+						});
+
+						d3.select("#loading_status").style("color", "rgb(255, 255, 255)");
+					}
+
+					//
+					if(graphLayout == undefined){
+						graphLayout = false;
+					}
+
+					var colormap = function(maxval, midval, minval, maxcol, midcol, mincol){
+					return d3.scaleLinear()
+							 .domain([minval, midval, maxval])
+							 .range([mincol, midcol, maxcol]);
+
+					}
+
+					var colormaps = {'RdBuGn':   ['rgb(20,220,120)','rgb(20,120,220)','rgb(220,20,20)'],
+								 'RdGrGn':   ['rgb(0,254,122)','rgb(185,185,185)','rgb(225,26,29)'],//2
+								 'PuBuXr':   ['rgb(20,120,255)','rgb(25,25,45)','rgb(255,20,120)'],//3
+								 'RdBuGnXr': ['rgb(20,220,120)','rgb(20,60,120)','rgb(220,20,20)'],//4
+								 'Viridis':  ['rgb(240,249,33)','rgb(30,153,138)','rgb(19,6,137)'],//5
+								 'Heat':     ['rgb(110,0,0)','rgb(255,17,0)','rgb(255,255,87)'],//9
+								 'Cool':     ['rgb(6,248,255)','rgb(139,116,255)','rgb(255,0,255)'],//11
+								 'Greens':   ['rgb(169,196,222)','rgb(121,198,122)','rgb(48,113,60)'],//8
+								 'Blues':    ['rgb(247,252,255)','rgb(95,166,209)','rgb(19,95,167)'],//7
+								 'GnBu':     ['rgb(247,252,240)','rgb(124,249,125)','rgb(8,73,138)'],//6
+								 'Winter':   ['rgb(0,11,249)','rgb(0,173,169)','rgb(0,255,128)']}//10
+
+					function getMaxOfArray(numArray) {
+					  return Math.max.apply(null, numArray);
+					}
+
+					function getMinOfArray(numArray) {
+					  return Math.min.apply(null, numArray);
+					}
+
+					var graph = {nodes:[], links:[]};
+
+					var curr_colormap;
+
+					d3.select("#loading_status").html("loaded nodes...");
+					var data = window.graph_data[graph_id];
+					data['nodes'].forEach(function(d){
+						graph['nodes'].push({id:d});
+					});
+
+					d3.select("#loading_status").html("loaded edges...");
+					data['links'].forEach(function(d){
+						graph['links'].push({source:d[0], target:d[1]});
+					});
+
+					//var height = 600;
+					//var width  = 1200;
+					var searchRadius = 3;
+
+					//d3.select("canvas").attr("height", height).attr("width", width);
+
+					var transform = d3.zoomIdentity;
+					
+					console.log($("#mainEvent_" + graph_id));
+
+					try{
+						//var canvas = document.querySelector("canvas"),
+						var canvas = document.querySelector("#mainEvent_" + graph_id),
+							context = canvas.getContext("2d"),
+							width = canvas.width,
+							height = canvas.height;
+							
+						$("#mainEvent_" + graph_id).width(width);
+						$("#mainEvent_" + graph_id).height(height);
+
+						var simulation = d3.forceSimulation()
+							.force("link", d3.forceLink().id(function(d) { return d.id; }))
+							.force("charge", d3.forceManyBody().strength(charge))
+							.force("center", d3.forceCenter(width / 2, height / 2))
+							.force("X", d3.forceX().x(0.2))
+							.force("Y", d3.forceY().y(0.2));
+
+						var zoom = d3.zoom();
+
+						var k = 1.0;
+
+						function initialize(){
+						  //zoom.scaleTo(d3.select("canvas").transition().duration(3000), 0.05);
+						}
+
+						//initialize();
+
+						var ggraph;
+
+						var selected_node;
+
+						var transform;
+
+						var ticks = 0;
+
+
+						var mixcolors = function(color1, color2){
+							var c1 = color1.replace("rgb(", "").replace(")", "").split(",");
+							var c2 = color2.replace("rgb(", "").replace(")", "").split(",");
+							var r1 = Math.round((parseInt(c1[0]) + parseInt(c2[0])) / 2);
+							var g1 = Math.round((parseInt(c1[1]) + parseInt(c2[1])) / 2);
+							var b1 = Math.round((parseInt(c1[2]) + parseInt(c2[2])) / 2);
+							if (isNaN(r1) || isNaN(g1) || isNaN(b1)){
+							  return "rgba(20,120,220,0.6)";
+							}else{
+							  return "rgba(" + r1.toString() + "," + g1.toString() + "," + b1.toString() + ",0.6)";
 							}
-						  }
-						  //drawLabel(user, user.id);
+						}
 
-						});
+						var drawGraph = function(){
+							console.log(graph);
 
-					   graph.nodes.forEach(function(user) {
-						  //if(user.deg > get_current_deg_thresh()){
-							context.beginPath();
-							drawLabel(user, user.id);
-							  context.font="bold " + get_current_font_size() + "px Arial";
-							  context.fillStyle = label_color;//user.color;
-							  context.fill();
-						  //}
-						});
-
-						ticks++;
-						context.restore();
-
-				  }
+							function dragsubject() {
+							  var i,
+								  x = transform.invertX(d3.event.x),
+								  y = transform.invertY(d3.event.y),
+								  dx,
+								  dy;
+							}
 
 
-			}
+							function dragstarted() {
+							  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+							  d3.event.subject.fx = d3.event.subject.x;
+							  d3.event.subject.fy = d3.event.subject.y;
+							}
 
-			var payload = {};
-			payload['model']    = model_name;
-			payload['type']     = model_type;
-			payload['memory']   = 'large';
-			payload['function'] = "rankNodes";
-			payload['extra_params'] = {};
-			payload['extra_params']['statistic'] = colorAxis;
-			//console.log(payload);
+							function dragged() {
+							  //d3.event.subject[0] = transform.invertX(d3.event.x);
+							  //d3.event.subject[1] = transform.invertY(d3.event.y);
+							  d3.event.subject.fx = d3.event.x;
+							  d3.event.subject.fy = d3.event.y;
+							}
 
-			$.ajax({
-				url: url,
-				type: "POST",
-				data: JSON.stringify(payload), 
-				beforeSend: function(xhr){
-					xhr.setRequestHeader('x-api-key', API_KEY);
-					xhr.setRequestHeader('Content-Type', 'application/json');
-				},
-				success: function(data){
-					console.log(data);
-					if(data['error'] == undefined){
+							function dragended() {
+							  if (!d3.event.active) simulation.alphaTarget(0);
+							  d3.event.subject.fx = null;
+							  d3.event.subject.fy = null;
+							}
 
-						d3.select("#loading_status").html("loaded colorAxis data...");
+							function drawLink(d) {
+							  context.moveTo(d.source.x, d.source.y);
+							  context.lineTo(d.target.x, d.target.y);
+							}
 
-						var keys = Object.keys(data['rankNodes']);
+							function drawNode(d) {
+							  context.moveTo(d.x + get_current_node_size(), d.y);
+							  context.arc(d.x, d.y, get_current_node_size(), 0, 2 * Math.PI);
+							  //context.fill();
+							}
+
+							function drawLabel(d, id) {
+							  //console.log(d);
+							  context.shadowBlur = 10;
+							  context.shadowColor = "rgba(120,120,120,0.3)";
+							  context.fillText(d.id, d.x,d.y);
+							  //context.fill();
+							}
+
+							function rgb2a(rgb_string, alpha){
+								//console.log(rgb_string);
+							  rgb_string = rgb_string.replace(")", "," + alpha + ")").replace("rgb", "rgba");
+							  //rgb_string = "rgba(0,0,0,0.3)";
+							  return rgb_string 
+							}
+
+							function get_current_alpha(){
+							  return 1.0 - Math.min(transform.k, 0.5);
+							}
+
+							function get_current_font_size(){
+							  return 10 / Math.pow(transform.k, 0.5);
+							}
+
+							function get_current_highlighted_font_size(){
+							  return Math.min(720 * transform.k, 20);
+							}
+
+							function get_current_link_width(){
+							  return Math.max(1.5, 0.5/ transform.k);
+							}
+
+							function get_current_node_size(){
+							  return Math.min(60 * transform.k, min_node_size);
+							}
+
+							function get_current_deg_thresh(){
+							  if(k >= 0.4){
+								return 1;
+							  }else{
+								return 2;
+							  }
+							}
+
+
+							ggraph = graph;
+							  setTimeout(initialize, 0);
+
+							  if(graphLayout == "force"){
+
+								  simulation
+									  .nodes(graph.nodes)
+									  .on("tick", ticked);
+
+								  simulation.force("link")
+									  .links(graph.links);
+
+							  }else{
+									  simulation
+									  .nodes(graph.nodes);
+									  //.on("tick", ticked);
+
+								  simulation.force("link")
+									  .links(graph.links);
+									ticked();
+							  }
+
+							  //d3.select("mainEvent_" + graph_id)
+							  
+							  d3.select(canvas)
+								  .on("mousemove", mousemoved)
+								  .call(d3.drag()
+									  .container(canvas)
+									  .subject(dragsubject)
+									  .on("start", dragstarted)
+									  .on("drag", dragged)
+									  .on("end", dragended))
+								  .call(zoom.on("zoom", zoomed));
+
+							  function zoomed() {
+								//console.log("zooming!");
+								transform = d3.event.transform;
+								//console.log(simulation.alpha());
+								if(graphLayout == "force"){
+									if(simulation.alpha() < 0.01){//>
+									  ticked();
+									}
+								}else{
+									ticked();
+								}
+							  }
+
+							  function mousemoved() {
+								//console.log(graph.nodes);
+								var m = d3.mouse(this);
+								var x = (m[0] - transform.x) / transform.k;
+								var y = (m[1] - transform.y) / transform.k;
+								var moused_node;
+								for (var i = graph.nodes.length - 1; i >= 0; --i) {
+								  var point = graph.nodes[i];
+								  var dx = x - point.x;
+								  var dy = y - point.y;
+								  if (dx * dx + dy * dy < searchRadius * searchRadius) {//>
+									//point.x = transform.applyX(point.x);
+									//point.y = transform.applyY(point.y);
+									moused_node = point;
+								  }
+								}
+								selected_node = moused_node;
+								if(graphLayout == "force"){
+									if(simulation.alpha() < 0.01){//>
+									  ticked();
+									}
+								}
+							  }
+
+							  function restartIt(){
+								simulation.alpha(1.0)
+								simulation.restart();
+							  }
+
+							  function ticked() {
+								k = transform.k;
+								if( graphLayout != "force"){
+									simulation.stop();
+								}else{
+									if(ticks == 0){
+										setTimeout(restartIt,1);
+									}
+								}
+									context.clearRect(0, 0, width, height);
+									context.save();
+									//context.translate(width / 2, height / 2);
+
+									context.globalAlpha = 1.0;
+
+									context.translate(transform.x, transform.y);
+									context.scale(transform.k, transform.k);
+
+									graph.links.forEach(function(link) {
+									  context.beginPath();
+									  drawLink(link);
+									  //context.strokeStyle = rgb2a("rgb(20,20,20)", get_current_alpha());
+									  //console.log(link.source.color);
+									  var color = mixcolors(link.source.color, link.target.color);
+									  context.strokeStyle = color;
+									  context.lineWidth = get_current_link_width();
+									  context.stroke();
+									});
+
+									graph.nodes.forEach(function(user) {
+									//console.log(user);
+									  context.beginPath();
+									  drawNode(user);
+									  context.fillStyle = rgb2a(user.color, get_current_alpha());
+									  context.fill();
+									  if(selected_node != undefined){
+										if(user.id == selected_node.id){
+										  context.strokeStyle = "#000";
+										  context.lineWidth = 1;
+										  context.stroke();
+										}
+									  }
+									  //drawLabel(user, user.id);
+
+									});
+
+								   graph.nodes.forEach(function(user) {
+									  //if(user.deg > get_current_deg_thresh()){
+										context.beginPath();
+										drawLabel(user, user.id);
+										  context.font="bold " + get_current_font_size() + "px Arial";
+										  context.fillStyle = label_color;//user.color;
+										  context.fill();
+									  //}
+									});
+
+									ticks++;
+									context.restore();
+
+							  }
+
+
+						}
 
 						var max_rank = 0;
 						var min_rank = 0;
 
-						graph.nodes.forEach(function(node, k){
-							if(data['rankNodes'][node.id] > max_rank){
-								max_rank = data['rankNodes'][node.id];
+						window.graph_data[graph_id]['stats'].forEach(function(row, j){
+							//console.log(row);
+							var val1 = row[0];
+							if(val1 > max_rank){
+								max_rank = val1;
 							}
-							if(data['rankNodes'][node.id] < min_rank){
-								min_rank = data['rankNodes'][node.id];
+							if(val1 < min_rank){
+								min_rank = val1;
 							}
-							graph.nodes[k][colorAxis] = data['rankNodes'][node.id];
+							graph.nodes[j][colorAxis] = val1
 						});
+
+						d3.select("#loading_status").html("loaded colorAxis data...");
 
 						var mid_rank = (max_rank - min_rank) / 2.0;
 
-						console.log([min_rank, mid_rank, max_rank, colormaps[colorMap][0], colormaps[colorMap][1], colormaps[colorMap][2]]);
+						//console.log([min_rank, mid_rank, max_rank, colormaps[colorMap][0], colormaps[colorMap][1], colormaps[colorMap][2]]);
 
 						curr_colormap = colormap(min_rank, mid_rank, max_rank, colormaps[colorMap][0], colormaps[colorMap][1], colormaps[colorMap][2]);
 
 						graph.nodes.forEach(function(node, k){
-							graph.nodes[k].color = curr_colormap(data['rankNodes'][node.id]);
+							graph.nodes[k].color = curr_colormap(graph.nodes[k][colorAxis]);
 						});
 
 						if(graphLayout == "force"){
-							d3.select("#spinner_" + window.current_graph_id).style("visibility", "hidden");
+							d3.select("#spinner_" + graph_id).style("visibility", "hidden");
 							drawGraph();
-							window.current_graph_id += 1
+							//window.current_graph_id += 1
 						}else{
 							// bind the node embedding data to the graph!
 							var max_xy = 0.0;
@@ -530,7 +530,7 @@ class GraphEngine():
 							var cmax_xy, cmin_xy;
 							// normalize embedding
 							//console.log("ooooooooooooooooooooooooo");
-							window.graph_data[window.current_graph_id]['embedding'].forEach(function(row, j){
+							window.graph_data[graph_id]['embedding'].forEach(function(row, j){
 								cmax_xy = getMaxOfArray(row);
 								cmin_xy = getMinOfArray(row);
 								if(cmax_xy > max_xy){
@@ -543,25 +543,28 @@ class GraphEngine():
 							//console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 							var range_xy = max_xy - min_xy;
 
-							window.graph_data[window.current_graph_id]['embedding'].forEach(function(row, j){
+							window.graph_data[graph_id]['embedding'].forEach(function(row, j){
 								//console.log(row);
 								graph.nodes[j]['x'] = ( ( ( Number(row[0]) ) / range_xy) * (width) )  + (width / 2);
 								graph.nodes[j]['y'] = ( ( ( Number(row[1]) ) / range_xy) * (height) ) + (height / 2);
 								graph.nodes[j]['fixed'] = true;
 							});
 
-							d3.select("#spinner_" + window.current_graph_id).style("visibility", "hidden");
+							d3.select("#spinner_" + graph_id).style("visibility", "hidden");
 							drawGraph();
-							window.current_graph_id += 1
+							//window.current_graph_id += 1
 						}
+							
+					}catch(err){
+						console.log(err);
+						console.log("element missing, moving on...");
 					}
-				}
 			});
-		});
+		})(graph_id, element);
 		
 		"""
 		self.graph_count += 1
-		return Javascript(config + javascript + js_code)
+		return Javascript(init_js + width_js + height_js + config + javascript + js_code)
 		
 	
 	def init_data(self):
@@ -570,7 +573,14 @@ class GraphEngine():
 		# else create window.graph_data = {} then return false
 		js_code = """
 			window.graph_data = [];
-			window.current_graph_id = 0;
+			window.current_graph_id = -1;
+			window.current_graph_id2 = 0; 
+			
+			/*
+			require(['d3'], function(d3){
+				window.d3 = d3;
+			});
+			*/
 		"""
 		return Javascript(js_code)
 		

@@ -31,14 +31,8 @@ class ConnectIO():
     self.api      = region_api_map[region]
     self.uploader = Uploader(api_key, self.region, self.bucket, self.api)
 
-  def put_file(self, name, fpath):
-    self.uploader.put_file(name, fpath)
-
   def put_df(self, name, dataframe):
     self.uploader.put_df(name, dataframe)
-
-  def delete_file(self, key):
-    self.uploader.delete_file(key)
 
   def list_files(self):
     return self.uploader.list_files()  
@@ -92,58 +86,19 @@ class Uploader():
     self.region  = region
     self.bucket  = bucket
     self.api     = api
-    self.credentials = None
-
-  def check_creds(self):
-    if self.credentials == None:
-      return False
-    else:
-      # check if expiration is still good
-      now = dt.datetime.now()
-      delta = self.credentials['Expiration'] - now
-      if delta.total_seconds() <= 0:
-        return False
-      else:
-        return True
-
-  def allocate(self):
+	
+  def get_upload_url(self, file_name):
     url = 'https://' + self.api + '.execute-api.' + self.region + '.amazonaws.com/' + API_STAGE + '/datasets/authorize'
     headers = {'x-api-key': self.api_key, 'Content-Type': 'application/json'}
-    r = requests.post(url, verify = False, headers = headers)
-    self.credentials = json.loads(r.text)
-    #print self.credentials
-    try:
-        self.credentials['Expiration'] = pd.to_datetime(self.credentials['Expiration'])
-        self.client = boto3.client('s3',
-          aws_access_key_id=self.credentials['AccessKeyId'],
-          aws_secret_access_key=self.credentials['SecretAccessKey'],
-          aws_session_token=self.credentials['SessionToken'],
-        )
-    except:
-        raise StandardException("problem authenticating...")
+    r = requests.post(url, verify = False, headers = headers, data = json.dumps({'name':file_name}))
+    return json.loads(r.text)
 
-  def put_file(self, name, fpath):
-    if self.check_creds() == False:
-      self.allocate()
-    return self.client.upload_file(fpath, self.bucket, "uploads/" + self.api_key + "/" + name)
-
-  def put_df(self, name, dataframe):
-    if self.check_creds() == False:
-      self.allocate()
-    tf = tempfile.NamedTemporaryFile(delete=False)
-    tf_name = tf.name
-    csv_data = dataframe.to_csv()
-    tf.write(csv_data)
-    tf.close()
-    response = self.client.upload_file(tf_name, self.bucket, "uploads/" + self.api_key + "/" + name)
+  def put_df(self, name, df):
+    post = self.get_upload_url(name)
+    files = {"file": df.to_csv()}
+    response = requests.post(post["url"], data=post["fields"], files=files)
     return response
-
-  def delete_file(self, key):
-    if self.check_creds() == False:
-      self.allocate()
-    key = "uploads/" + self.api_key + "/" + key
-    return self.client.delete_object(Bucket=self.bucket, Key = key)
-  
+	
   def list_files(self): 
     url = 'https://' + self.api + '.execute-api.' + self.region + '.amazonaws.com/' + API_STAGE + '/datasets'
     headers = {'x-api-key': self.api_key}
